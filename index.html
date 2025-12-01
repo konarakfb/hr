@@ -114,7 +114,6 @@
     .desktop-nav{display:none}
     .hamburger{display:block}
     #sidebar{display:block}
-    .admin-only{display:inline-block}
   }
   @media(min-width:901px){
     #sidebar{display:none}
@@ -123,6 +122,10 @@
   footer{padding:12px 0;text-align:center;color:var(--muted);font-size:13px;margin-top:24px}
 </style>
 
+<!-- Firebase SDKs (compat build for easier migration) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+
 <!-- libs -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -130,7 +133,7 @@
 
 <body>
 
-<!-- TOP BAR (brand style like site) -->
+<!-- TOP BAR -->
 <div class="topbar">
   <div class="brand" onclick="showOnly('employees')">
     <img src="logo1.png" onerror="this.style.display='none'">
@@ -142,7 +145,7 @@
 
   <div class="top-actions">
     <button id="btn-login" onclick="openLogin()" style="display:inline-block">HR Login</button>
-    <button id="btn-logout" onclick="logout()" style="display:none">Logout</button>
+    <button id="btn-logout" onclick="doSignOut()" style="display:none">Logout</button>
     <button class="hamburger" onclick="openSidebar()">☰</button>
   </div>
 </div>
@@ -187,68 +190,22 @@
 
 <script>
 /* ============================
-   CONFIG / AUTH
+   Firebase initialization
+   (you provided firebaseConfig)
 ============================= */
-const ADMIN_KEY = "konarak_hr_admin";
-const ADMIN_PW = "KonarakFB@123"; // per user instruction
-
-function isAdmin(){ return localStorage.getItem(ADMIN_KEY) === "1"; }
-function setAdmin(v){
-  if(v) localStorage.setItem(ADMIN_KEY,"1");
-  else localStorage.removeItem(ADMIN_KEY);
-  applyPermissions();
-}
-
-/* Login modal */
-function openLogin(){
-  const modal = document.getElementById("modal"), dlg = document.getElementById("dialog");
-  dlg.innerHTML = `
-    <h3>HR Login</h3>
-    <p>Enter admin password to unlock HR edit features.</p>
-    <input id="pw" type="password" placeholder="Password" style="width:100%;padding:10px;border-radius:8px;border:1px solid #eee">
-    <div style="margin-top:12px;display:flex;gap:8px">
-      <button class="btn" id="btn-do-login">Login</button>
-      <button class="btn ghost" id="btn-cancel-login">Cancel</button>
-    </div>
-  `;
-  modal.style.display = "flex";
-  document.getElementById("btn-cancel-login").onclick = ()=> modal.style.display = "none";
-  document.getElementById("btn-do-login").onclick = ()=>{
-    const pw = document.getElementById("pw").value;
-    if(pw === ADMIN_PW){
-      setAdmin(true);
-      alert("Login successful — Admin mode enabled.");
-      modal.style.display = "none";
-      updateTopbar();
-    } else {
-      alert("Incorrect password.");
-    }
-  };
-}
-
-/* Logout */
-function logout(){
-  if(!confirm("Logout admin?")) return;
-  setAdmin(false);
-  updateTopbar();
-  alert("Logged out. Public (read-only) mode active.");
-}
-
-/* update topbar btns */
-function updateTopbar(){
-  const loginBtn = document.getElementById("btn-login");
-  const logoutBtn = document.getElementById("btn-logout");
-  if(isAdmin()){
-    loginBtn.style.display = "none";
-    logoutBtn.style.display = "inline-block";
-  } else {
-    loginBtn.style.display = "inline-block";
-    logoutBtn.style.display = "none";
-  }
-}
+const firebaseConfig = {
+  apiKey: "AIzaSyBoLtw_S4JHa4GPcQY0kF5K8OjuCDLpDmE",
+  authDomain: "konarak-hr.firebaseapp.com",
+  projectId: "konarak-hr",
+  storageBucket: "konarak-hr.firebasestorage.app",
+  messagingSenderId: "826849470022",
+  appId: "1:826849470022:web:6df0580607d5c2a71f8c47"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
 
 /* ============================
-   SCHEMAS & STORAGE
+   Helpers & UI
 ============================= */
 const SCHEMAS = {
   employees:["EmployeeID","Status","FirstName","LastName","FullName","DOB","Gender","PAN","Aadhar","Email","Phone","Address","Department","Team","Designation","DateOfJoining","DateOfExit","ProbationEndDate","WorkLocation","ReportingManagerID","WorkType","BankName","BankAC","IFSC","SalaryCTC_Annual","SalaryBasic","HRA","OtherAllowances","EmployeeNotes","EmployeeFolderID","OnboardingChecklistComplete"],
@@ -261,16 +218,69 @@ const SCHEMAS = {
   auditlog:["Timestamp","Action","Entity","RecordID","Summary","By"]
 };
 const LS_PREFIX = "konarak_hr_";
-
 const qs = (s, el=document) => el.querySelector(s);
 const qsa = (s, el=document) => Array.from(el.querySelectorAll(s));
 
 function loadData(key){ try{ return JSON.parse(localStorage.getItem(LS_PREFIX+key))||[]}catch{return[]} }
 function saveData(key,val){ localStorage.setItem(LS_PREFIX+key,JSON.stringify(val)); }
 
+/* Determine admin status from Firebase user */
+function isAdmin(){
+  return !!auth.currentUser;
+}
+
+/* Update topbar based on auth state */
+function updateTopbar(){
+  const loginBtn = document.getElementById("btn-login");
+  const logoutBtn = document.getElementById("btn-logout");
+  if(isAdmin()){
+    loginBtn.style.display = "none";
+    logoutBtn.style.display = "inline-block";
+  } else {
+    loginBtn.style.display = "inline-block";
+    logoutBtn.style.display = "none";
+  }
+  applyPermissions();
+}
+
+/* Sign in (login modal) */
+function openLogin(){
+  const modal = document.getElementById("modal"), dlg = document.getElementById("dialog");
+  dlg.innerHTML = `
+    <h3>HR Login</h3>
+    <p>Sign in with your HR email and password.</p>
+    <input id="femail" type="email" placeholder="Email" style="width:100%;padding:10px;border-radius:8px;border:1px solid #eee;margin-top:8px">
+    <input id="fpw" type="password" placeholder="Password" style="width:100%;padding:10px;border-radius:8px;border:1px solid #eee;margin-top:8px">
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <button class="btn" id="btn-do-login">Login</button>
+      <button class="btn ghost" id="btn-cancel-login">Cancel</button>
+    </div>
+    <p style="font-size:12px;color:#666;margin-top:8px">If you lost access, reset from Firebase console (Authentication → Users).</p>
+  `;
+  modal.style.display = "flex";
+  qs("#btn-cancel-login").onclick = ()=> modal.style.display = "none";
+  qs("#btn-do-login").onclick = ()=>{
+    const email = qs("#femail").value.trim();
+    const pw = qs("#fpw").value;
+    if(!email || !pw) return alert("Enter email & password");
+    auth.signInWithEmailAndPassword(email, pw)
+      .then(()=>{ modal.style.display = "none"; alert("Signed in."); })
+      .catch(err=> alert("Login failed: "+err.message));
+  };
+}
+
+/* Sign out */
+function doSignOut(){
+  auth.signOut().then(()=>{ alert("Signed out."); }).catch(e=>alert("Sign out error."));
+}
+
+/* Listen for auth state */
+auth.onAuthStateChanged(user=>{
+  updateTopbar();
+});
+
 /* ============================
-   UI — create sections
-   (toolbar buttons marked .admin-only)
+   UI — create sections & render
 ============================= */
 function createSection(key){
   const schema = SCHEMAS[key];
@@ -302,18 +312,20 @@ function createSection(key){
   `;
 
   const tb = dv.querySelector(".toolbar");
-  tb.querySelector('[data-action="new"]').onclick = ()=>openForm(key);
-  tb.querySelector('[data-action="export"]').onclick = ()=>exportData(key);
-  tb.querySelector('[data-action="import"]').onclick = ()=>openImport(key);
-  tb.querySelector('[data-action="search"]').oninput = e=>renderList(key,e.target.value);
+  const newBtn = tb.querySelector('[data-action="new"]');
+  const exportBtn = tb.querySelector('[data-action="export"]');
+  const importBtn = tb.querySelector('[data-action="import"]');
+  const searchInput = tb.querySelector('[data-action="search"]');
+
+  if(newBtn) newBtn.onclick = ()=>openForm(key);
+  if(exportBtn) exportBtn.onclick = ()=>exportData(key);
+  if(importBtn) importBtn.onclick = ()=>openImport(key);
+  if(searchInput) searchInput.oninput = e=>renderList(key,e.target.value);
   if(key==="attendance") tb.querySelector('[data-action="exportDaily"]').onclick = ()=>exportAttendanceTable();
 
   return dv;
 }
 
-/* ============================
-   Render list (Edit/Delete/PDF are admin-only)
-============================= */
 function renderList(key,filter=""){
   const section = qs("#section-"+key);
   const list = section.querySelector(".vertical-list");
@@ -376,15 +388,15 @@ function renderList(key,filter=""){
     list.appendChild(card);
   });
 
-  applyPermissions(); // enforce after rendering
+  applyPermissions();
 }
 
 /* ============================
-   FORM / CRUD (guarded by isAdmin)
+   FORM / CRUD (guarded)
 ============================= */
 function openForm(key,index=null){
   if(!isAdmin()){
-    alert("Read-only mode. HR login required to edit or add records.");
+    alert("Read-only. Sign in as HR to edit.");
     return;
   }
 
@@ -452,11 +464,13 @@ function addRecord(key,obj){
   const arr = loadData(key); arr.push(obj); saveData(key,arr);
   pushAudit("Create", key, obj[SCHEMAS[key][0]], JSON.stringify(obj));
 }
+
 function updateRecord(key,i,obj){
   if(!isAdmin()){ alert("Admin required."); return; }
   const arr = loadData(key); arr[i]=obj; saveData(key,arr);
   pushAudit("Update", key, obj[SCHEMAS[key][0]], JSON.stringify(obj));
 }
+
 function deleteRecord(key,i){
   if(!isAdmin()){ alert("Admin required."); return; }
   const arr = loadData(key); const rec = arr[i]; arr.splice(i,1); saveData(key,arr);
@@ -465,17 +479,12 @@ function deleteRecord(key,i){
 }
 
 /* ============================
-   PDF FUNCTIONS — TABLE FORMATS (brand color #f28c2b)
-   — with admin checks
+   PDF FUNCTIONS (admin only)
 ============================= */
-
-/* Single record PDF */
 function exportSingleRecord(key, rec) {
   if(!isAdmin()){ alert("Admin required to export PDFs."); return; }
-  // implementation same as previous (brand table)...
   const jsPDF = window.jspdf.jsPDF;
   const doc = new jsPDF({unit:'pt',format:'a4'});
-
   const schema = SCHEMAS[key];
   const id = rec[schema[0]] || "record";
   const margin = 28;
@@ -541,16 +550,12 @@ function exportSingleRecord(key, rec) {
   doc.save(`${key}_${id}.pdf`);
 }
 
-/* Export All -> tabular landscape */
 function exportData(key) {
   if(!isAdmin()){ alert("Admin required to export PDFs."); return; }
-
   const data = loadData(key);
   if(!data.length) return alert("No data");
-
   const jsPDF = window.jspdf.jsPDF;
   const doc = new jsPDF({unit:'pt',format:'a4',orientation:'landscape'});
-
   const cols = SCHEMAS[key];
   const margin = 20;
   const pageW = doc.internal.pageSize.getWidth() - margin*2;
@@ -608,21 +613,17 @@ function exportData(key) {
   doc.save(`${key}_table.pdf`);
 }
 
-/* Attendance PDF (guarded) */
 function exportAttendanceTable(){
   if(!isAdmin()){ alert("Admin required to export PDFs."); return; }
-
   const data = loadData('attendance');
   if(!data.length) return alert('No attendance data');
 
   const jsPDF = window.jspdf.jsPDF;
   const doc = new jsPDF({unit:'pt',format:'a4',orientation:'landscape'});
-
   const cols = SCHEMAS.attendance;
   const margin = 18;
   const pageW = doc.internal.pageSize.getWidth() - margin*2;
   const pageH = doc.internal.pageSize.getHeight();
-
   const minW = 70, maxW = 260;
   const colWeights = cols.map(c=>Math.max(6,c.length));
   const totalWeight = colWeights.reduce((a,b)=>a+b,0);
@@ -701,7 +702,7 @@ function exportAttendanceTable(){
 }
 
 /* ============================
-   IMPORT/EXPORT & AUDIT
+   IMPORT/EXPORT & AUDIT (guarded)
 ============================= */
 function openImport(key){
   if(!isAdmin()){ alert("Admin required to import."); return; }
@@ -747,19 +748,18 @@ function exportDataJSON(key){
 /* audit log push */
 function pushAudit(a,e,id,sum){
   const arr=loadData("auditlog");
-  arr.unshift({Timestamp:new Date().toISOString(),Action:a,Entity:e,RecordID:id,Summary:sum,By:"LocalUser"});
+  arr.unshift({Timestamp:new Date().toISOString(),Action:a,Entity:e,RecordID:id,Summary:sum,By:(auth.currentUser?auth.currentUser.email:'Public')});
   saveData("auditlog",arr);
   renderList("auditlog");
 }
 
 /* ============================
-   INIT
+   INIT & PERMISSIONS
 ============================= */
 const root = qs("#sections");
 Object.keys(SCHEMAS).forEach(k=>root.appendChild(createSection(k)));
 Object.keys(SCHEMAS).forEach(k=>renderList(k));
 
-/* show only function */
 function showOnly(n){
   Object.keys(SCHEMAS).forEach(k=>{
     qs("#section-"+k).style.display = (k===n) ? "block" : "none";
@@ -796,7 +796,7 @@ function applyPermissions(){
   updateTopbar();
 }
 
-/* initial permission state */
+/* initial permission state (will be updated on auth change) */
 applyPermissions();
 
 /* ensure lists are rendered for all */
