@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Konarak HR — Konarak Food & Beverages</title>
+
+<style>
+  :root{
+    --accent:#f28c2b;
+    --dark:#2b2b2b;
+    --muted:#666;
+    --card:#fff;
+    --maxw:1100px;
+    --bg:#fff;
+    --border:#e9e6e3;
+  }
+  *{box-sizing:border-box}
+  body{font-family:Inter,Arial,sans-serif;margin:0;background:var(--bg);color:var(--dark);-webkit-font-smoothing:antialiased}
+
+  /* TOP BAR */
+  .topbar{
+    background:var(--accent);color:#fff;
+    padding:10px 15px;display:flex;justify-content:space-between;align-items:center;
+    position:sticky;top:0;z-index:1000;
+  }
+  .brand{display:flex;align-items:center;gap:10px;cursor:pointer}
+  .brand img{width:42px;height:42px;border-radius:6px;object-fit:contain;background:#fff;padding:4px}
+  .brand h1{margin:0;font-size:18px;font-weight:700}
+  .small{color:rgba(255,255,255,0.9);font-size:13px}
+
+  .top-actions{display:flex;gap:8px;align-items:center}
+  .top-actions button{background:rgba(255,255,255,0.12);border:0;color:#fff;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:700}
+
+  /* DESKTOP NAV */
+  .desktop-nav{
+    background:#fff;border-bottom:1px solid #eee;padding:10px 20px;
+    display:flex;gap:14px;align-items:center;justify-content:center;
+  }
+  .desktop-nav a,.desktop-nav button{
+    font-size:14px;color:var(--dark);text-decoration:none;background:none;border:0;
+    padding:8px 12px;border-radius:6px;cursor:pointer;font-weight:600;
+  }
+  .desktop-nav a:hover,
+  .desktop-nav button:hover{background:#f7f7f7}
+
+  .nav-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+
+  .dropdown{position:relative}
+  .dropdown-menu{
+    position:absolute;top:38px;left:0;width:220px;background:#fff;border-radius:8px;
+    box-shadow:0 6px 20px rgba(0,0,0,.12);display:none;z-index:50;padding:8px;
+  }
+  .dropdown-menu a{
+    display:block;padding:10px;text-decoration:none;color:#000;border-radius:6px;
+  }
+  .dropdown-menu a:hover{background:#f3f3f3}
+
+  /* MOBILE MENU */
+  .hamburger{display:none;font-size:26px;color:#fff;background:none;border:0}
+
+  #sidebar{
+    position:fixed;top:0;left:-260px;width:260px;height:100%;
+    background:#fff;box-shadow:2px 0 10px rgba(0,0,0,.25);
+    padding:20px;z-index:9999;transition:left .3s ease;overflow-y:auto;
+  }
+  #sidebar a,#sidebar button{
+    display:block;width:100%;text-align:left;margin:6px 0;padding:12px;
+    border:0;background:none;font-size:16px;color:#222;border-radius:6px;
+  }
+  .close-btn{
+    font-size:22px;background:none;border:0;text-align:right;width:40px;margin-bottom:10px;
+  }
+  .side-submenu{display:none;padding-left:12px;border-left:2px solid #ddd}
+
+  /* MAIN HR APP LAYOUT */
+  main{max-width:var(--maxw);margin:auto;padding:20px}
+  .card{
+    background:var(--card);padding:16px;border-radius:10px;
+    box-shadow:0 6px 18px rgba(0,0,0,.04);margin-bottom:18px;
+    border:1px solid rgba(0,0,0,0.03);
+  }
+
+  header.hr-header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  input[type="search"]{padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:#fff}
+
+  label{font-size:13px;font-weight:600;margin-top:10px;display:block;color:var(--dark)}
+  input,select,textarea{
+    width:100%;padding:10px;border-radius:8px;border:1px solid #eee;margin-top:6px;font-size:14px;
+    background:#fff;
+  }
+  button.btn{background:var(--accent);color:#fff;border:0;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:700}
+  button.btn.ghost{background:transparent;color:var(--accent);border:1px solid rgba(0,0,0,0.06);font-weight:700}
+
+  .grid{display:grid;grid-template-columns:1fr 360px;gap:16px}
+  .vertical-list{display:flex;flex-direction:column;gap:12px;max-height:60vh;overflow:auto;padding-right:4px}
+
+  .entry-card{background:#fff;border-radius:10px;padding:10px;margin-bottom:6px;box-shadow:none;border:1px solid var(--border)}
+  .entry-card .title{font-weight:700;color:var(--dark);margin-bottom:6px}
+  .entry-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .entry-row{display:flex;flex-direction:column;padding:8px;background:#fff;border-radius:8px}
+  .entry-label{font-size:11px;color:var(--muted);font-weight:600}
+  .entry-value{font-size:13px;margin-top:6px;line-height:1.3;word-break:break-word}
+
+  .entry-actions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+
+  /* admin-only utility class */
+  .admin-only{display:inline-block}
+  .hidden-for-public{display:none}
+
+  @media(max-width:900px){
+    .grid{grid-template-columns:1fr}
+    .desktop-nav{display:none}
+    .hamburger{display:block}
+    #sidebar{display:block}
+    .admin-only{display:inline-block}
+  }
+  @media(min-width:901px){
+    #sidebar{display:none}
+  }
+
+  footer{padding:12px 0;text-align:center;color:var(--muted);font-size:13px;margin-top:24px}
+</style>
+
+<!-- libs -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+
+<body>
+
+<!-- TOP BAR (brand style like site) -->
+<div class="topbar">
+  <div class="brand" onclick="showOnly('employees')">
+    <img src="logo1.png" onerror="this.style.display='none'">
+    <div>
+      <h1>Konarak Food & Beverages</h1>
+      <div class="small">HR — LocalStorage App</div>
+    </div>
+  </div>
+
+  <div class="top-actions">
+    <button id="btn-login" onclick="openLogin()" style="display:inline-block">HR Login</button>
+    <button id="btn-logout" onclick="logout()" style="display:none">Logout</button>
+    <button class="hamburger" onclick="openSidebar()">☰</button>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <button class="close-btn" onclick="closeSidebar()">✕</button>
+
+  <a href="#employees" onclick="closeSidebar();showOnly('employees')">Employees</a>
+  <a href="#attendance" onclick="closeSidebar();showOnly('attendance')">Attendance</a>
+  <a href="#leaves" onclick="closeSidebar();showOnly('leaves')">Leaves</a>
+  <a href="#payroll" onclick="closeSidebar();showOnly('payroll')">Payroll</a>
+  <a href="#recruitment" onclick="closeSidebar();showOnly('recruitment')">Recruitment</a>
+  <a href="#documents" onclick="closeSidebar();showOnly('documents')">Documents</a>
+  <a href="#invoices" onclick="closeSidebar();showOnly('invoices')">Invoices</a>
+  <a href="#auditlog" onclick="closeSidebar();showOnly('auditlog')">Audit Log</a>
+</div>
+
+<!-- DESKTOP NAV -->
+<nav class="desktop-nav">
+  <button onclick="showOnly('employees')" class="navbtn">Employees</button>
+  <button onclick="showOnly('attendance')" class="navbtn">Attendance</button>
+  <button onclick="showOnly('leaves')" class="navbtn">Leaves</button>
+  <button onclick="showOnly('payroll')" class="navbtn">Payroll</button>
+  <button onclick="showOnly('recruitment')" class="navbtn">Recruitment</button>
+  <button onclick="showOnly('documents')" class="navbtn">Documents</button>
+  <button onclick="showOnly('invoices')" class="navbtn">Invoices</button>
+  <button onclick="showOnly('auditlog')" class="navbtn">Audit Log</button>
+</nav>
+
+<!-- MAIN -->
+<main>
+  <section id="sections"></section>
+</main>
+
+<footer>Konarak Food & Beverages • LocalStorage HR App</footer>
+
+<!-- modal container for import/login -->
+<div id="modal" style="display:none;align-items:center;justify-content:center;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999">
+  <div class="card" id="dialog" style="max-width:560px;width:96%"></div>
+</div>
+
+<script>
+/* ============================
+   CONFIG / AUTH
+============================= */
+const ADMIN_KEY = "konarak_hr_admin";
+const ADMIN_PW = "KonarakFB@123"; // per user instruction
+
+function isAdmin(){ return localStorage.getItem(ADMIN_KEY) === "1"; }
+function setAdmin(v){
+  if(v) localStorage.setItem(ADMIN_KEY,"1");
+  else localStorage.removeItem(ADMIN_KEY);
+  applyPermissions();
+}
+
+/* Login modal */
+function openLogin(){
+  const modal = document.getElementById("modal"), dlg = document.getElementById("dialog");
+  dlg.innerHTML = `
+    <h3>HR Login</h3>
+    <p>Enter admin password to unlock HR edit features.</p>
+    <input id="pw" type="password" placeholder="Password" style="width:100%;padding:10px;border-radius:8px;border:1px solid #eee">
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <button class="btn" id="btn-do-login">Login</button>
+      <button class="btn ghost" id="btn-cancel-login">Cancel</button>
+    </div>
+  `;
+  modal.style.display = "flex";
+  document.getElementById("btn-cancel-login").onclick = ()=> modal.style.display = "none";
+  document.getElementById("btn-do-login").onclick = ()=>{
+    const pw = document.getElementById("pw").value;
+    if(pw === ADMIN_PW){
+      setAdmin(true);
+      alert("Login successful — Admin mode enabled.");
+      modal.style.display = "none";
+      updateTopbar();
+    } else {
+      alert("Incorrect password.");
+    }
+  };
+}
+
+/* Logout */
+function logout(){
+  if(!confirm("Logout admin?")) return;
+  setAdmin(false);
+  updateTopbar();
+  alert("Logged out. Public (read-only) mode active.");
+}
+
+/* update topbar btns */
+function updateTopbar(){
+  const loginBtn = document.getElementById("btn-login");
+  const logoutBtn = document.getElementById("btn-logout");
+  if(isAdmin()){
+    loginBtn.style.display = "none";
+    logoutBtn.style.display = "inline-block";
+  } else {
+    loginBtn.style.display = "inline-block";
+    logoutBtn.style.display = "none";
+  }
+}
+
+/* ============================
+   SCHEMAS & STORAGE
+============================= */
+const SCHEMAS = {
+  employees:["EmployeeID","Status","FirstName","LastName","FullName","DOB","Gender","PAN","Aadhar","Email","Phone","Address","Department","Team","Designation","DateOfJoining","DateOfExit","ProbationEndDate","WorkLocation","ReportingManagerID","WorkType","BankName","BankAC","IFSC","SalaryCTC_Annual","SalaryBasic","HRA","OtherAllowances","EmployeeNotes","EmployeeFolderID","OnboardingChecklistComplete"],
+  attendance:["Date","EmployeeID","FullName","CheckInTime","CheckOutTime","WorkHours","Location","Device","Status","ManualAdjustment","ApprovedBy","Remarks"],
+  leaves:["LeaveID","EmployeeID","FullName","LeaveType","FromDate","ToDate","Days","PartialDay","Reason","AppliedOn","ManagerID","Status","ApprovedOn","ApprovedBy","AttachmentDriveID","HRRemarks"],
+  payroll:["PayrollID","EmployeeID","Month","Year","Basic","HRA","Conveyance","OtherAllowances","GrossEarnings","PF_Employee","PF_Employer","ESI_Employee","ESI_Employer","PT","TDS","OtherDeductions","TotalDeductions","NetPay","BankTransferID","PayslipDriveID","ProcessedOn","ProcessedBy","Notes"],
+  recruitment:["ReqID","Position","Openings","Location","PostedOn","Status","HiringManager","Notes"],
+  documents:["DocID","EmployeeID","DocType","Title","UploadedOn","DriveID","Notes"],
+  invoices:["InvoiceID","Vendor","Date","Amount","DueDate","Status","DriveID","Notes"],
+  auditlog:["Timestamp","Action","Entity","RecordID","Summary","By"]
+};
+const LS_PREFIX = "konarak_hr_";
+
+const qs = (s, el=document) => el.querySelector(s);
+const qsa = (s, el=document) => Array.from(el.querySelectorAll(s));
+
+function loadData(key){ try{ return JSON.parse(localStorage.getItem(LS_PREFIX+key))||[]}catch{return[]} }
+function saveData(key,val){ localStorage.setItem(LS_PREFIX+key,JSON.stringify(val)); }
+
+/* ============================
+   UI — create sections
+   (toolbar buttons marked .admin-only)
+============================= */
+function createSection(key){
+  const schema = SCHEMAS[key];
+  const dv = document.createElement("div");
+  dv.className = "card";
+  dv.id = "section-"+key;
+  dv.style.marginBottom = "16px";
+
+  dv.innerHTML = `
+    <div class="hr-header">
+      <h2 style="margin:0;text-transform:capitalize">${key}</h2>
+      <div class="toolbar">
+        ${key==="attendance" ? `<button class="btn ghost admin-only" data-action="exportDaily">PDF Daily</button>` : ""}
+        <button class="btn admin-only" data-action="new">+ New</button>
+        <button class="btn ghost admin-only" data-action="export">Export</button>
+        <button class="btn ghost admin-only" data-action="import">Import</button>
+        <input type="search" placeholder="Search..." data-action="search" style="min-width:160px">
+      </div>
+    </div>
+
+    <div class="grid">
+      <div>
+        <div class="vertical-list"></div>
+      </div>
+      <div class="card">
+        <div id="form-${key}"><em>Select a record or click New</em></div>
+      </div>
+    </div>
+  `;
+
+  const tb = dv.querySelector(".toolbar");
+  tb.querySelector('[data-action="new"]').onclick = ()=>openForm(key);
+  tb.querySelector('[data-action="export"]').onclick = ()=>exportData(key);
+  tb.querySelector('[data-action="import"]').onclick = ()=>openImport(key);
+  tb.querySelector('[data-action="search"]').oninput = e=>renderList(key,e.target.value);
+  if(key==="attendance") tb.querySelector('[data-action="exportDaily"]').onclick = ()=>exportAttendanceTable();
+
+  return dv;
+}
+
+/* ============================
+   Render list (Edit/Delete/PDF are admin-only)
+============================= */
+function renderList(key,filter=""){
+  const section = qs("#section-"+key);
+  const list = section.querySelector(".vertical-list");
+  const data = loadData(key);
+  const schema = SCHEMAS[key];
+  const idField = schema[0];
+
+  list.innerHTML = "";
+
+  data.filter(r=>{
+    if(!filter) return true;
+    return JSON.stringify(r).toLowerCase().includes(filter.toLowerCase());
+  }).forEach((rec,i)=>{
+    const card = document.createElement("div");
+    card.className = "entry-card";
+
+    const head = document.createElement("div");
+    head.className = "title";
+    head.textContent = `${idField}: ${rec[idField]||('-')}`;
+
+    const det = document.createElement("div");
+    det.className = "entry-grid";
+    det.style.display = "none";
+
+    schema.forEach(f=>{
+      const r = document.createElement("div");
+      r.className = "entry-row";
+      r.innerHTML = `<div class="entry-label">${f}</div><div class="entry-value">${rec[f]||""}</div>`;
+      det.appendChild(r);
+    });
+
+    const act = document.createElement("div");
+    act.className = "entry-actions";
+    act.style.display = "none";
+
+    const pdfB = document.createElement("button");
+    pdfB.className = "btn ghost admin-only";
+    pdfB.textContent = "PDF";
+    pdfB.onclick = ()=>exportSingleRecord(key,rec);
+
+    const edit = document.createElement("button");
+    edit.className = "btn ghost admin-only";
+    edit.textContent = "Edit";
+    edit.onclick = ()=>openForm(key,i);
+
+    const del = document.createElement("button");
+    del.className = "btn ghost admin-only";
+    del.textContent = "Delete";
+    del.onclick = ()=>{ if(confirm("Delete?")) deleteRecord(key,i); };
+
+    act.append(pdfB, edit, del);
+
+    head.onclick = ()=>{
+      const open = det.style.display === "block";
+      det.style.display = open ? "none" : "grid";
+      act.style.display = open ? "none" : "flex";
+    };
+
+    card.append(head, det, act);
+    list.appendChild(card);
+  });
+
+  applyPermissions(); // enforce after rendering
+}
+
+/* ============================
+   FORM / CRUD (guarded by isAdmin)
+============================= */
+function openForm(key,index=null){
+  if(!isAdmin()){
+    alert("Read-only mode. HR login required to edit or add records.");
+    return;
+  }
+
+  const area = qs("#form-"+key);
+  const data = loadData(key);
+  const schema = SCHEMAS[key];
+  const rec = index!==null ? data[index] : {};
+  area.innerHTML = "";
+  const fm = document.createElement("form");
+
+  schema.forEach(f=>{
+    const row = document.createElement("div");
+    const label = document.createElement("label");
+    label.textContent = f;
+
+    let inp;
+    if(f.toLowerCase().includes("notes")||f.toLowerCase().includes("address"))
+      inp = document.createElement("textarea");
+    else if(f.toLowerCase().includes("date"))
+      (inp=document.createElement("input")).type = "date";
+    else if(f.toLowerCase().includes("time"))
+      (inp=document.createElement("input")).type = "time";
+    else if(f.toLowerCase().includes("email"))
+      (inp=document.createElement("input")).type = "email";
+    else
+      (inp=document.createElement("input")).type = "text";
+
+    inp.name = f;
+    inp.value = rec[f]||"";
+
+    row.append(label, inp);
+    fm.appendChild(row);
+  });
+
+  const save = document.createElement("button");
+  save.className = "btn";
+  save.type = "submit";
+  save.textContent = index!==null ? "Update" : "Save";
+
+  const cancel = document.createElement("button");
+  cancel.className = "btn ghost";
+  cancel.type = "button";
+  cancel.textContent = "Cancel";
+  cancel.onclick = ()=>area.innerHTML = "<em>Select a record</em>";
+
+  fm.append(save, cancel);
+
+  fm.onsubmit = e=>{
+    e.preventDefault();
+    if(!isAdmin()){ alert("Admin required."); return; }
+    const fd = new FormData(fm);
+    const obj = {};
+    SCHEMAS[key].forEach(f => obj[f] = fd.get(f));
+    if(index!==null) updateRecord(key, index, obj);
+    else addRecord(key, obj);
+    area.innerHTML = "<em>Saved.</em>";
+    renderList(key);
+  };
+
+  area.appendChild(fm);
+}
+
+function addRecord(key,obj){
+  if(!isAdmin()){ alert("Admin required."); return; }
+  const arr = loadData(key); arr.push(obj); saveData(key,arr);
+  pushAudit("Create", key, obj[SCHEMAS[key][0]], JSON.stringify(obj));
+}
+function updateRecord(key,i,obj){
+  if(!isAdmin()){ alert("Admin required."); return; }
+  const arr = loadData(key); arr[i]=obj; saveData(key,arr);
+  pushAudit("Update", key, obj[SCHEMAS[key][0]], JSON.stringify(obj));
+}
+function deleteRecord(key,i){
+  if(!isAdmin()){ alert("Admin required."); return; }
+  const arr = loadData(key); const rec = arr[i]; arr.splice(i,1); saveData(key,arr);
+  pushAudit("Delete", key, rec[SCHEMAS[key][0]], JSON.stringify(rec));
+  renderList(key);
+}
+
+/* ============================
+   PDF FUNCTIONS — TABLE FORMATS (brand color #f28c2b)
+   — with admin checks
+============================= */
+
+/* Single record PDF */
+function exportSingleRecord(key, rec) {
+  if(!isAdmin()){ alert("Admin required to export PDFs."); return; }
+  // implementation same as previous (brand table)...
+  const jsPDF = window.jspdf.jsPDF;
+  const doc = new jsPDF({unit:'pt',format:'a4'});
+
+  const schema = SCHEMAS[key];
+  const id = rec[schema[0]] || "record";
+  const margin = 28;
+  let x = margin;
+  let y = 40;
+  const rowH = 22;
+  const col1 = 180;
+  const col2 = doc.internal.pageSize.getWidth() - margin - margin - col1;
+
+  doc.setFontSize(18);
+  doc.setTextColor("#333");
+  doc.text(`${key.toUpperCase()} RECORD`, x, y);
+  y += 26;
+
+  doc.setFillColor(242,140,43);
+  doc.setDrawColor(210);
+  doc.rect(x, y, col1+col2, rowH, "F");
+  doc.setFontSize(11);
+  doc.setTextColor("#fff");
+  doc.text("Field", x + 8, y + 15);
+  doc.text("Value", x + col1 + 8, y + 15);
+  y += rowH;
+
+  doc.setFontSize(10);
+  doc.setTextColor("#222");
+
+  for(let i=0;i<schema.length;i++){
+    const f = schema[i];
+    const text = String(rec[f]||"");
+    if(i % 2 === 0) { doc.setFillColor(246,247,248); doc.rect(x, y, col1+col2, rowH, "F"); }
+    doc.setDrawColor(220);
+    doc.rect(x, y, col1, rowH);
+    doc.rect(x+col1, y, col2, rowH);
+    const leftLines = doc.splitTextToSize(f, col1 - 12);
+    const rightLines = doc.splitTextToSize(text, col2 - 12);
+    const lines = Math.max(leftLines.length, rightLines.length);
+    const neededH = Math.max(rowH, lines * 12 + 8);
+
+    if(y + neededH > doc.internal.pageSize.getHeight() - 40){
+      doc.addPage();
+      y = 40;
+      doc.setFillColor(242,140,43);
+      doc.rect(x, y, col1+col2, rowH, "F");
+      doc.setTextColor("#fff");
+      doc.text("Field", x + 8, y + 15);
+      doc.text("Value", x + col1 + 8, y + 15);
+      y += rowH;
+      doc.setTextColor("#222");
+    }
+
+    if(i % 2 === 0) { doc.setFillColor(246,247,248); doc.rect(x, y, col1+col2, neededH, "F"); }
+    doc.setDrawColor(220);
+    doc.rect(x, y, col1, neededH);
+    doc.rect(x+col1, y, col2, neededH);
+
+    doc.setTextColor("#111");
+    doc.text(leftLines, x + 8, y + 12);
+    doc.text(rightLines, x + col1 + 8, y + 12);
+
+    y += neededH + 4;
+  }
+
+  doc.save(`${key}_${id}.pdf`);
+}
+
+/* Export All -> tabular landscape */
+function exportData(key) {
+  if(!isAdmin()){ alert("Admin required to export PDFs."); return; }
+
+  const data = loadData(key);
+  if(!data.length) return alert("No data");
+
+  const jsPDF = window.jspdf.jsPDF;
+  const doc = new jsPDF({unit:'pt',format:'a4',orientation:'landscape'});
+
+  const cols = SCHEMAS[key];
+  const margin = 20;
+  const pageW = doc.internal.pageSize.getWidth() - margin*2;
+  const pageH = doc.internal.pageSize.getHeight();
+  const colW = Math.max(60, Math.floor(pageW / cols.length));
+  let y = 36;
+  const rowH = 20;
+
+  doc.setFontSize(16);
+  doc.setTextColor("#222");
+  doc.text(`${key.toUpperCase()} REPORT`, margin, y);
+  y += 26;
+
+  doc.setFillColor(242,140,43);
+  doc.setTextColor("#fff");
+  doc.setFontSize(10);
+  doc.rect(margin, y, pageW, rowH, "F");
+  for(let i=0;i<cols.length;i++){
+    const cx = margin + i*colW;
+    doc.text(String(cols[i]).substring(0,20), cx + 6, y + 14);
+  }
+  y += rowH + 4;
+  doc.setTextColor("#111");
+
+  data.forEach((row, rIndex) => {
+    if(y + rowH > pageH - 40){
+      doc.addPage("landscape");
+      y = 36;
+      doc.setFontSize(10);
+      doc.setFillColor(242,140,43);
+      doc.setTextColor("#fff");
+      doc.rect(margin, y, pageW, rowH, "F");
+      for(let i=0;i<cols.length;i++){
+        const cx = margin + i*colW;
+        doc.text(String(cols[i]).substring(0,20), cx + 6, y + 14);
+      }
+      y += rowH + 4;
+      doc.setTextColor("#111");
+    }
+
+    if(rIndex % 2 === 0){
+      doc.setFillColor(246,247,248);
+      doc.rect(margin, y, pageW, rowH, "F");
+    }
+
+    for(let i=0;i<cols.length;i++){
+      const cx = margin + i*colW;
+      const txt = String(row[cols[i]]||"");
+      const truncated = txt.length > 60 ? txt.substring(0,60) + "…" : txt;
+      doc.text(truncated, cx + 6, y + 14);
+    }
+    y += rowH + 4;
+  });
+
+  doc.save(`${key}_table.pdf`);
+}
+
+/* Attendance PDF (guarded) */
+function exportAttendanceTable(){
+  if(!isAdmin()){ alert("Admin required to export PDFs."); return; }
+
+  const data = loadData('attendance');
+  if(!data.length) return alert('No attendance data');
+
+  const jsPDF = window.jspdf.jsPDF;
+  const doc = new jsPDF({unit:'pt',format:'a4',orientation:'landscape'});
+
+  const cols = SCHEMAS.attendance;
+  const margin = 18;
+  const pageW = doc.internal.pageSize.getWidth() - margin*2;
+  const pageH = doc.internal.pageSize.getHeight();
+
+  const minW = 70, maxW = 260;
+  const colWeights = cols.map(c=>Math.max(6,c.length));
+  const totalWeight = colWeights.reduce((a,b)=>a+b,0);
+  let colW = colWeights.map(w => Math.floor(pageW * (w/totalWeight)));
+  colW = colW.map(w => Math.max(minW, Math.min(maxW, w)));
+  let sumW = colW.reduce((a,b)=>a+b,0);
+  if(sumW < pageW) colW[colW.length-1] += (pageW - sumW);
+  if(sumW > pageW){
+    const scale = pageW / sumW;
+    colW = colW.map(w => Math.floor(w * scale));
+    sumW = colW.reduce((a,b)=>a+b,0);
+    if(sumW < pageW) colW[colW.length-1] += (pageW - sumW);
+  }
+
+  let y = 36;
+  doc.setFontSize(16);
+  doc.setTextColor("#222");
+  doc.text("Daily Attendance Report", margin, y);
+  y += 22;
+
+  doc.setFontSize(9);
+  doc.setTextColor("#666");
+  doc.text(`Generated: ${new Date().toLocaleString()}`, margin, y);
+  y += 14;
+
+  const headerH = 22;
+  doc.setFillColor(242,140,43);
+  doc.setTextColor("#fff");
+  let x = margin;
+  doc.rect(x, y, pageW, headerH, "F");
+  for(let i=0;i<cols.length;i++){
+    doc.text(cols[i], x + 6, y + 15);
+    x += colW[i];
+  }
+  y += headerH + 6;
+  doc.setTextColor("#111");
+
+  data.forEach((row, idx)=>{
+    const cellLines = cols.map((c,i) => doc.splitTextToSize(String(row[c]||""), colW[i]-10));
+    const heights = cellLines.map(cl => cl.length * 12);
+    const rowH = Math.max(18, ...heights) + 6;
+
+    if(y + rowH > pageH - 30){
+      doc.addPage("landscape");
+      y = 36;
+      doc.setFillColor(242,140,43);
+      doc.setTextColor("#fff");
+      x = margin;
+      doc.rect(x, y, pageW, headerH, "F");
+      for(let i=0;i<cols.length;i++){
+        doc.text(cols[i], x + 6, y + 15);
+        x += colW[i];
+      }
+      y += headerH + 6;
+      doc.setTextColor("#111");
+    }
+
+    if(idx % 2 === 0){
+      doc.setFillColor(246,247,248);
+      doc.rect(margin, y, pageW, rowH, "F");
+    }
+
+    x = margin;
+    doc.setDrawColor(220);
+    for(let i=0;i<cols.length;i++){
+      doc.rect(x, y, colW[i], rowH);
+      const txtLines = doc.splitTextToSize(String(row[cols[i]]||""), colW[i]-10);
+      doc.text(txtLines, x + 6, y + 12);
+      x += colW[i];
+    }
+
+    y += rowH + 6;
+  });
+
+  doc.save("Daily_Attendance.pdf");
+}
+
+/* ============================
+   IMPORT/EXPORT & AUDIT
+============================= */
+function openImport(key){
+  if(!isAdmin()){ alert("Admin required to import."); return; }
+  const modal = document.getElementById("modal"), dialog = document.getElementById("dialog");
+  dialog.innerHTML = `<h3>Import ${key}</h3>
+    <input type="file" id="importfile" accept="application/json">
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <button class="btn" id="doimp">Import</button>
+      <button class="btn ghost" id="cancelimp">Cancel</button>
+    </div>`;
+  modal.style.display = "flex";
+  qs("#cancelimp").onclick = ()=>modal.style.display = "none";
+  qs("#doimp").onclick = ()=>{
+    const f = qs("#importfile").files[0];
+    if(!f) return alert("Choose JSON");
+    const r = new FileReader();
+    r.onload = ()=>{
+      try{
+        const arr = JSON.parse(r.result);
+        if(!Array.isArray(arr)) throw 0;
+        saveData(key, arr);
+        pushAudit("Import", key, "-", "Imported file");
+        renderList(key);
+        modal.style.display = "none";
+      }catch{
+        alert("Invalid JSON");
+      }
+    };
+    r.readAsText(f);
+  };
+}
+
+function exportDataJSON(key){
+  if(!isAdmin()){ alert("Admin required to export JSON."); return; }
+  const arr = loadData(key);
+  const blob = new Blob([JSON.stringify(arr, null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `${key}.json`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* audit log push */
+function pushAudit(a,e,id,sum){
+  const arr=loadData("auditlog");
+  arr.unshift({Timestamp:new Date().toISOString(),Action:a,Entity:e,RecordID:id,Summary:sum,By:"LocalUser"});
+  saveData("auditlog",arr);
+  renderList("auditlog");
+}
+
+/* ============================
+   INIT
+============================= */
+const root = qs("#sections");
+Object.keys(SCHEMAS).forEach(k=>root.appendChild(createSection(k)));
+Object.keys(SCHEMAS).forEach(k=>renderList(k));
+
+/* show only function */
+function showOnly(n){
+  Object.keys(SCHEMAS).forEach(k=>{
+    qs("#section-"+k).style.display = (k===n) ? "block" : "none";
+  });
+  qsa(".desktop-nav .navbtn").forEach(b=>{
+    b.style.background = (b.textContent.toLowerCase()===n) ? "rgba(0,0,0,0.04)" : "transparent";
+  });
+}
+showOnly("employees");
+
+/* sidebar helpers */
+function openSidebar(){ document.getElementById("sidebar").style.left = "0"; }
+function closeSidebar(){ document.getElementById("sidebar").style.left = "-260px"; }
+
+/* nav buttons (desktop) */
+qsa(".desktop-nav .navbtn").forEach(b=>{
+  b.onclick = ()=>{ showOnly(b.textContent.toLowerCase()); window.location.hash = b.textContent.toLowerCase(); };
+});
+
+/* show section via hash */
+window.addEventListener("hashchange",()=>{
+  const sh = (location.hash||"#employees").replace("#","");
+  if(SCHEMAS[sh]) showOnly(sh);
+});
+
+/* enforce permissions by toggling admin-only elements */
+function applyPermissions(){
+  const adminEls = qsa(".admin-only");
+  if(isAdmin()){
+    adminEls.forEach(e=>e.style.display = (e.tagName === "INPUT" ? "inline-block" : "inline-block"));
+  } else {
+    adminEls.forEach(e=>e.style.display = "none");
+  }
+  updateTopbar();
+}
+
+/* initial permission state */
+applyPermissions();
+
+/* ensure lists are rendered for all */
+Object.keys(SCHEMAS).forEach(k=>renderList(k));
+
+</script>
+</body>
+</html>
