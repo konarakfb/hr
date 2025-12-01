@@ -18,7 +18,6 @@
   *{box-sizing:border-box}
   body{font-family:Inter,Arial,sans-serif;margin:0;background:var(--bg);color:var(--dark);-webkit-font-smoothing:antialiased}
 
-  /* TOP BAR */
   .topbar{
     background:var(--accent);color:#fff;
     padding:10px 15px;display:flex;justify-content:space-between;align-items:center;
@@ -32,7 +31,6 @@
   .top-actions{display:flex;gap:8px;align-items:center}
   .top-actions button{background:rgba(255,255,255,0.12);border:0;color:#fff;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:700}
 
-  /* DESKTOP NAV */
   .desktop-nav{
     background:#fff;border-bottom:1px solid #eee;padding:10px 20px;
     display:flex;gap:14px;align-items:center;justify-content:center;
@@ -56,7 +54,6 @@
   }
   .dropdown-menu a:hover{background:#f3f3f3}
 
-  /* MOBILE MENU */
   .hamburger{display:none;font-size:26px;color:#fff;background:none;border:0}
 
   #sidebar{
@@ -72,8 +69,6 @@
     font-size:22px;background:none;border:0;text-align:right;width:40px;margin-bottom:10px;
   }
   .side-submenu{display:none;padding-left:12px;border-left:2px solid #ddd}
-
-  /* MAIN HR APP LAYOUT */
   main{max-width:var(--maxw);margin:auto;padding:20px}
   .card{
     background:var(--card);padding:16px;border-radius:10px;
@@ -105,7 +100,6 @@
 
   .entry-actions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
 
-  /* admin-only utility class */
   .admin-only{display:inline-block}
   .hidden-for-public{display:none}
 
@@ -122,7 +116,7 @@
   footer{padding:12px 0;text-align:center;color:var(--muted);font-size:13px;margin-top:24px}
 </style>
 
-<!-- Firebase SDKs (compat build for easier migration) -->
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
 
@@ -135,7 +129,7 @@
 
 <!-- TOP BAR -->
 <div class="topbar">
-  <div class="brand" onclick="showOnly('employees')">
+  <div class="brand" onclick="window.open('https://konarakfb.github.io/web/','_blank')">
     <img src="logo1.png" onerror="this.style.display='none'">
     <div>
       <h1>Konarak Food & Beverages</h1>
@@ -154,6 +148,9 @@
 <div id="sidebar">
   <button class="close-btn" onclick="closeSidebar()">✕</button>
 
+  <!-- NEW HOME LINK ADDED -->
+  <a href="https://konarakfb.github.io/web/" onclick="closeSidebar()" target="_blank">Home</a>
+
   <a href="#employees" onclick="closeSidebar();showOnly('employees')">Employees</a>
   <a href="#attendance" onclick="closeSidebar();showOnly('attendance')">Attendance</a>
   <a href="#leaves" onclick="closeSidebar();showOnly('leaves')">Leaves</a>
@@ -164,8 +161,9 @@
   <a href="#auditlog" onclick="closeSidebar();showOnly('auditlog')">Audit Log</a>
 </div>
 
-<!-- DESKTOP NAV -->
+<!-- DESKTOP NAV (HOME ADDED BEFORE EMPLOYEES) -->
 <nav class="desktop-nav">
+  <a href="https://konarakfb.github.io/web/" class="navbtn" target="_blank">Home</a>
   <button onclick="showOnly('employees')" class="navbtn">Employees</button>
   <button onclick="showOnly('attendance')" class="navbtn">Attendance</button>
   <button onclick="showOnly('leaves')" class="navbtn">Leaves</button>
@@ -176,22 +174,18 @@
   <button onclick="showOnly('auditlog')" class="navbtn">Audit Log</button>
 </nav>
 
-<!-- MAIN -->
 <main>
   <section id="sections"></section>
 </main>
 
 <footer>Konarak Food & Beverages • HR Admin App</footer>
 
-<!-- modal container for import/login -->
 <div id="modal" style="display:none;align-items:center;justify-content:center;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999">
   <div class="card" id="dialog" style="max-width:560px;width:96%"></div>
 </div>
-
 <script>
 /* ============================
    Firebase initialization
-   (you provided firebaseConfig)
 ============================= */
 const firebaseConfig = {
   apiKey: "AIzaSyBoLtw_S4JHa4GPcQY0kF5K8OjuCDLpDmE",
@@ -217,6 +211,7 @@ const SCHEMAS = {
   invoices:["InvoiceID","Vendor","Date","Amount","DueDate","Status","DriveID","Notes"],
   auditlog:["Timestamp","Action","Entity","RecordID","Summary","By"]
 };
+
 const LS_PREFIX = "konarak_hr_";
 const qs = (s, el=document) => el.querySelector(s);
 const qsa = (s, el=document) => Array.from(el.querySelectorAll(s));
@@ -224,12 +219,12 @@ const qsa = (s, el=document) => Array.from(el.querySelectorAll(s));
 function loadData(key){ try{ return JSON.parse(localStorage.getItem(LS_PREFIX+key))||[]}catch{return[]} }
 function saveData(key,val){ localStorage.setItem(LS_PREFIX+key,JSON.stringify(val)); }
 
-/* Determine admin status from Firebase user */
+/* Determine admin status */
 function isAdmin(){
   return !!auth.currentUser;
 }
 
-/* Update topbar based on auth state */
+/* Update top bar buttons based on login state */
 function updateTopbar(){
   const loginBtn = document.getElementById("btn-login");
   const logoutBtn = document.getElementById("btn-logout");
@@ -243,7 +238,7 @@ function updateTopbar(){
   applyPermissions();
 }
 
-/* Sign in (login modal) */
+/* Login Modal */
 function openLogin(){
   const modal = document.getElementById("modal"), dlg = document.getElementById("dialog");
   dlg.innerHTML = `
@@ -255,9 +250,9 @@ function openLogin(){
       <button class="btn" id="btn-do-login">Login</button>
       <button class="btn ghost" id="btn-cancel-login">Cancel</button>
     </div>
- 
   `;
   modal.style.display = "flex";
+
   qs("#btn-cancel-login").onclick = ()=> modal.style.display = "none";
   qs("#btn-do-login").onclick = ()=>{
     const email = qs("#femail").value.trim();
@@ -271,14 +266,13 @@ function openLogin(){
 
 /* Sign out */
 function doSignOut(){
-  auth.signOut().then(()=>{ alert("Signed out."); }).catch(e=>alert("Sign out error."));
+  auth.signOut().then(()=> alert("Signed out.") );
 }
 
-/* Listen for auth state */
+/* Listen for login state changes */
 auth.onAuthStateChanged(user=>{
   updateTopbar();
 });
-
 /* ============================
    UI — create sections & render
 ============================= */
@@ -326,6 +320,9 @@ function createSection(key){
   return dv;
 }
 
+/* ============================
+   Render list (public read-only, admin can edit)
+============================= */
 function renderList(key,filter=""){
   const section = qs("#section-"+key);
   const list = section.querySelector(".vertical-list");
@@ -479,12 +476,17 @@ function deleteRecord(key,i){
 }
 
 /* ============================
-   PDF FUNCTIONS (admin only)
+   PDF FUNCTIONS — TABLE FORMATS (brand color #f28c2b)
+   — Single record, Export all, Attendance (no overlap)
 ============================= */
+
+/* Single Record -> table rows */
 function exportSingleRecord(key, rec) {
   if(!isAdmin()){ alert("Admin required to export PDFs."); return; }
+
   const jsPDF = window.jspdf.jsPDF;
   const doc = new jsPDF({unit:'pt',format:'a4'});
+
   const schema = SCHEMAS[key];
   const id = rec[schema[0]] || "record";
   const margin = 28;
@@ -494,12 +496,14 @@ function exportSingleRecord(key, rec) {
   const col1 = 180;
   const col2 = doc.internal.pageSize.getWidth() - margin - margin - col1;
 
+  // Title
   doc.setFontSize(18);
   doc.setTextColor("#333");
   doc.text(`${key.toUpperCase()} RECORD`, x, y);
   y += 26;
 
-  doc.setFillColor(242,140,43);
+  // Header row (Field | Value)
+  doc.setFillColor(242,140,43); // #f28c2b
   doc.setDrawColor(210);
   doc.rect(x, y, col1+col2, rowH, "F");
   doc.setFontSize(11);
@@ -514,18 +518,24 @@ function exportSingleRecord(key, rec) {
   for(let i=0;i<schema.length;i++){
     const f = schema[i];
     const text = String(rec[f]||"");
+    // alternate row fill
     if(i % 2 === 0) { doc.setFillColor(246,247,248); doc.rect(x, y, col1+col2, rowH, "F"); }
+    // borders
     doc.setDrawColor(220);
     doc.rect(x, y, col1, rowH);
     doc.rect(x+col1, y, col2, rowH);
+    // text (wrap if long)
     const leftLines = doc.splitTextToSize(f, col1 - 12);
     const rightLines = doc.splitTextToSize(text, col2 - 12);
+    // find max lines to compute required height
     const lines = Math.max(leftLines.length, rightLines.length);
     const neededH = Math.max(rowH, lines * 12 + 8);
 
+    // If not enough space on page -> new page and redraw header
     if(y + neededH > doc.internal.pageSize.getHeight() - 40){
       doc.addPage();
       y = 40;
+      // redraw header on new page
       doc.setFillColor(242,140,43);
       doc.rect(x, y, col1+col2, rowH, "F");
       doc.setTextColor("#fff");
@@ -535,6 +545,7 @@ function exportSingleRecord(key, rec) {
       doc.setTextColor("#222");
     }
 
+    // fill background again if needed for multi-line
     if(i % 2 === 0) { doc.setFillColor(246,247,248); doc.rect(x, y, col1+col2, neededH, "F"); }
     doc.setDrawColor(220);
     doc.rect(x, y, col1, neededH);
@@ -550,12 +561,16 @@ function exportSingleRecord(key, rec) {
   doc.save(`${key}_${id}.pdf`);
 }
 
+/* Export All -> tabular landscape with automatic page breaks */
 function exportData(key) {
   if(!isAdmin()){ alert("Admin required to export PDFs."); return; }
+
   const data = loadData(key);
   if(!data.length) return alert("No data");
+
   const jsPDF = window.jspdf.jsPDF;
   const doc = new jsPDF({unit:'pt',format:'a4',orientation:'landscape'});
+
   const cols = SCHEMAS[key];
   const margin = 20;
   const pageW = doc.internal.pageSize.getWidth() - margin*2;
@@ -564,11 +579,13 @@ function exportData(key) {
   let y = 36;
   const rowH = 20;
 
+  // Title
   doc.setFontSize(16);
   doc.setTextColor("#222");
   doc.text(`${key.toUpperCase()} REPORT`, margin, y);
   y += 26;
 
+  // Draw header
   doc.setFillColor(242,140,43);
   doc.setTextColor("#fff");
   doc.setFontSize(10);
@@ -580,7 +597,9 @@ function exportData(key) {
   y += rowH + 4;
   doc.setTextColor("#111");
 
+  // Rows
   data.forEach((row, rIndex) => {
+    // if not enough space -> new page and redraw header
     if(y + rowH > pageH - 40){
       doc.addPage("landscape");
       y = 36;
@@ -596,14 +615,17 @@ function exportData(key) {
       doc.setTextColor("#111");
     }
 
+    // alternate background
     if(rIndex % 2 === 0){
       doc.setFillColor(246,247,248);
       doc.rect(margin, y, pageW, rowH, "F");
     }
 
+    // draw row
     for(let i=0;i<cols.length;i++){
       const cx = margin + i*colW;
       const txt = String(row[cols[i]]||"");
+      // trim to fit cell
       const truncated = txt.length > 60 ? txt.substring(0,60) + "…" : txt;
       doc.text(truncated, cx + 6, y + 14);
     }
@@ -613,19 +635,26 @@ function exportData(key) {
   doc.save(`${key}_table.pdf`);
 }
 
+/* Attendance PDF (table with dynamic column widths, no overlap) */
 function exportAttendanceTable(){
   if(!isAdmin()){ alert("Admin required to export PDFs."); return; }
+
   const data = loadData('attendance');
   if(!data.length) return alert('No attendance data');
 
   const jsPDF = window.jspdf.jsPDF;
   const doc = new jsPDF({unit:'pt',format:'a4',orientation:'landscape'});
+
   const cols = SCHEMAS.attendance;
   const margin = 18;
   const pageW = doc.internal.pageSize.getWidth() - margin*2;
   const pageH = doc.internal.pageSize.getHeight();
+
+  // Calculate column widths by heuristics (min/max)
   const minW = 70, maxW = 260;
-  const colWeights = cols.map(c=>Math.max(6,c.length));
+  const colWeights = cols.map(c=>{
+    return Math.max(6, c.length);
+  });
   const totalWeight = colWeights.reduce((a,b)=>a+b,0);
   let colW = colWeights.map(w => Math.floor(pageW * (w/totalWeight)));
   colW = colW.map(w => Math.max(minW, Math.min(maxW, w)));
@@ -639,16 +668,19 @@ function exportAttendanceTable(){
   }
 
   let y = 36;
+  // Title
   doc.setFontSize(16);
   doc.setTextColor("#222");
   doc.text("Daily Attendance Report", margin, y);
   y += 22;
 
+  // Generated line
   doc.setFontSize(9);
   doc.setTextColor("#666");
   doc.text(`Generated: ${new Date().toLocaleString()}`, margin, y);
   y += 14;
 
+  // Header row
   const headerH = 22;
   doc.setFillColor(242,140,43);
   doc.setTextColor("#fff");
@@ -661,7 +693,9 @@ function exportAttendanceTable(){
   y += headerH + 6;
   doc.setTextColor("#111");
 
+  // Rows
   data.forEach((row, idx)=>{
+    // compute row height by seeing wrap for each col
     const cellLines = cols.map((c,i) => doc.splitTextToSize(String(row[c]||""), colW[i]-10));
     const heights = cellLines.map(cl => cl.length * 12);
     const rowH = Math.max(18, ...heights) + 6;
@@ -669,6 +703,7 @@ function exportAttendanceTable(){
     if(y + rowH > pageH - 30){
       doc.addPage("landscape");
       y = 36;
+      // redraw header (small)
       doc.setFillColor(242,140,43);
       doc.setTextColor("#fff");
       x = margin;
@@ -681,15 +716,18 @@ function exportAttendanceTable(){
       doc.setTextColor("#111");
     }
 
+    // background stripe
     if(idx % 2 === 0){
       doc.setFillColor(246,247,248);
       doc.rect(margin, y, pageW, rowH, "F");
     }
 
+    // draw cell borders and text
     x = margin;
     doc.setDrawColor(220);
     for(let i=0;i<cols.length;i++){
       doc.rect(x, y, colW[i], rowH);
+      // write text
       const txtLines = doc.splitTextToSize(String(row[cols[i]]||""), colW[i]-10);
       doc.text(txtLines, x + 6, y + 12);
       x += colW[i];
@@ -702,7 +740,7 @@ function exportAttendanceTable(){
 }
 
 /* ============================
-   IMPORT/EXPORT & AUDIT (guarded)
+   IMPORT/EXPORT helpers
 ============================= */
 function openImport(key){
   if(!isAdmin()){ alert("Admin required to import."); return; }
@@ -745,14 +783,15 @@ function exportDataJSON(key){
   URL.revokeObjectURL(url);
 }
 
-/* audit log push */
+/* ============================
+   Audit log
+============================= */
 function pushAudit(a,e,id,sum){
   const arr=loadData("auditlog");
   arr.unshift({Timestamp:new Date().toISOString(),Action:a,Entity:e,RecordID:id,Summary:sum,By:(auth.currentUser?auth.currentUser.email:'Public')});
   saveData("auditlog",arr);
   renderList("auditlog");
 }
-
 /* ============================
    INIT & PERMISSIONS
 ============================= */
@@ -770,38 +809,47 @@ function showOnly(n){
 }
 showOnly("employees");
 
-/* sidebar helpers */
+/* sidebar */
 function openSidebar(){ document.getElementById("sidebar").style.left = "0"; }
 function closeSidebar(){ document.getElementById("sidebar").style.left = "-260px"; }
 
-/* nav buttons (desktop) */
+/* desktop nav -> switch section */
 qsa(".desktop-nav .navbtn").forEach(b=>{
-  b.onclick = ()=>{ showOnly(b.textContent.toLowerCase()); window.location.hash = b.textContent.toLowerCase(); };
+  b.onclick = ()=>{ 
+    const sec = b.textContent.toLowerCase(); 
+    if(SCHEMAS[sec]) showOnly(sec); 
+    window.location.hash = sec; 
+  };
 });
 
-/* show section via hash */
+/* hash navigation */
 window.addEventListener("hashchange",()=>{
   const sh = (location.hash||"#employees").replace("#","");
   if(SCHEMAS[sh]) showOnly(sh);
 });
 
-/* enforce permissions by toggling admin-only elements */
+/* Permission handling: admin-only elements are hidden for public */
 function applyPermissions(){
   const adminEls = qsa(".admin-only");
+
   if(isAdmin()){
-    adminEls.forEach(e=>e.style.display = (e.tagName === "INPUT" ? "inline-block" : "inline-block"));
+    adminEls.forEach(e=>{
+      e.style.display = (e.tagName === "INPUT" ? "inline-block" : "inline-block");
+    });
   } else {
-    adminEls.forEach(e=>e.style.display = "none");
+    adminEls.forEach(e=> e.style.display = "none");
   }
+
   updateTopbar();
 }
 
-/* initial permission state (will be updated on auth change) */
+/* Initial permission state */
 applyPermissions();
 
-/* ensure lists are rendered for all */
+/* Re-render lists to apply read-only mode */
 Object.keys(SCHEMAS).forEach(k=>renderList(k));
 
 </script>
+
 </body>
 </html>
